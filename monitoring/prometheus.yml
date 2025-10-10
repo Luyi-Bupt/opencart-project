@@ -1,0 +1,11 @@
+# 全局配置
+global:
+  scrape_interval: 15s # 每15秒抓取一次指标
+
+# 抓取任务配置
+scrape_configs:
+  # 定义一个名为 'nginx' 的抓取任务
+  - job_name: 'nginx'
+    # 我们不直接抓取Nginx，而是抓取一个专门的“指标翻译官”nginx-exporter
+    static_configs:
+      - targets: ['nginx-exporter:9113'] # nginx-exporter服务默认监听在9113端口

@@ -1,0 +1,134 @@
+# opencart-docker/docker-compose.yml
+
+version: '3.8'
+
+services:
+  # 1. 数据库服务 (MariaDB)
+  db:
+    image: mariadb:10.11
+    container_name: opencart-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_DATABASE: opencart_db
+      MYSQL_USER: opencart_user
+      MYSQL_PASSWORD: opencart_password_123
+    volumes:
+      - ./db_data:/var/lib/mysql  # 将数据库数据持久化到本地的db_data文件夹
+
+  # 2. PHP应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: opencart-app
+    restart: always
+    volumes:
+      - ./opencart:/var/www/html  # 将本地的opencart文件夹挂载到容器中
+    depends_on:
+      - db  # 确保先启动数据库
+
+  app_v2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: opencart-app-v2
+    restart: always
+    volumes:
+      - ./opencart_v2:/var/www/html  # 将本地的opencart文件夹挂载到容器中
+    depends_on:
+      - db  # 确保先启动数据库
+
+  # 3. Nginx Web服务器
+  # webserver:
+  #   image: nginx:1.25
+  #   container_name: opencart-web
+  #   restart: always
+  #   ports:
+  #     - "8080:80"  # 将我们电脑的8080端口映射到容器的80端口
+  #   volumes:
+  #     - ./opencart:/var/www/html
+  #     - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - app
+
+  webserver:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile # <--- 1. 改为build模式，指向新Dockerfile
+    container_name: opencart-web
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      # 2. 只保留对配置文件的挂载，移除对源代码的挂载
+      # - ./opencart:/var/www/html  # gpt
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+      - app_v2
+
+  # 4. (可选但强烈推荐) 数据库管理工具
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: opencart-pma
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db  # 连接到名为'db'的数据库服务
+    depends_on:
+      - db
+
+  automation:
+    build:
+      context: ./automation-tool # 指定构建上下文和Dockerfile位置
+    container_name: opencart-automation
+    restart: always
+    environment:
+      # 将数据库凭证通过环境变量传给Go程序
+      - DB_HOST=db
+      - DB_USER=opencart_user
+      - DB_PASSWORD=opencart_password_123
+      - DB_NAME=opencart_db
+    ports:
+      - "8082:8080" # 将容器的8080端口映射到主机的8082端口
+    volumes:
+      # 将本地的backups文件夹挂载到容器的/backups目录
+      - ./backups:/backups
+    depends_on:
+      - db # 确保在数据库启动之后再运行
+
+  nginx-exporter:
+      image: nginx/nginx-prometheus-exporter:1.1.0
+      container_name: opencart-nginx-exporter
+      restart: always
+      ports:
+        - "9113:9113"
+      # 通过 -nginx.scrape-uri 连接到webserver的指标端点
+      command: -nginx.scrape-uri=http://webserver/stub_status
+      depends_on:
+        - webserver
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: opencart-prometheus
+    restart: always
+    ports:
+      - "9090:9090" # 将电脑的9090端口映射到Prometheus
+    volumes:
+      # 挂载我们的配置文件和数据存储目录
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus_data:/prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: opencart-grafana
+    restart: always
+    ports:
+      - "3000:3000" # 将电脑的3000端口映射到Grafana
+    volumes:
+      - ./monitoring/grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
