@@ -1,0 +1,29 @@
+# --- Dockerfile.v1 / Dockerfile.v2 (不换源版) ---
+FROM php:8.1-fpm
+
+# 我们直接使用官方源，因此删除了 sed 或 echo 修改源的步骤
+
+# 步骤一：更新列表并安装系统依赖
+RUN apt-get update && apt-get install -y \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libzip-dev \
+    unzip
+
+# 步骤二：配置并安装PHP扩展
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install gd mysqli zip pdo pdo_mysql
+    
+WORKDIR /var/www/html
+
+# --- 对于 Dockerfile.v1 ---
+# COPY ./opencart /var/www/html
+
+# --- 对于 Dockerfile.v2 (请确保只保留这一行) ---
+COPY ./opencart_v2 /var/www/html
+
+RUN ls -R /var/www/html
+
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 777 /var/www/html/system/storage

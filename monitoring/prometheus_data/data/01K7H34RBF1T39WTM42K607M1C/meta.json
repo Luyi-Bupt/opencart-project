@@ -1,0 +1,17 @@
+{
+	"ulid": "01K7H34RBF1T39WTM42K607M1C",
+	"minTime": 1760425771527,
+	"maxTime": 1760428800000,
+	"stats": {
+		"numSamples": 10302,
+		"numSeries": 51,
+		"numChunks": 53
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01K7H34RBF1T39WTM42K607M1C"
+		]
+	},
+	"version": 1
+}

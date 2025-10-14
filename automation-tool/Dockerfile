@@ -7,6 +7,9 @@ WORKDIR /app
 # 使用 go.* 通配符，这样即使 go.sum 不存在也不会报错
 COPY go.* ./
 
+# 使用 goproxy.cn 作为代理，direct作为备用
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+
 # 下载所有go.mod中定义的依赖
 RUN go mod download
 

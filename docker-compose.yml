@@ -20,22 +20,18 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.v1
     container_name: opencart-app
     restart: always
-    volumes:
-      - ./opencart:/var/www/html  # 将本地的opencart文件夹挂载到容器中
     depends_on:
       - db  # 确保先启动数据库
 
   app_v2:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.v2
     container_name: opencart-app-v2
     restart: always
-    volumes:
-      - ./opencart_v2:/var/www/html  # 将本地的opencart文件夹挂载到容器中
     depends_on:
       - db  # 确保先启动数据库
 
@@ -132,3 +128,6 @@ services:
       - ./monitoring/grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
+
+volumes:
+  db_data:
