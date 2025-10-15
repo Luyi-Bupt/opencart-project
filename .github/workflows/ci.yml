@@ -59,3 +59,24 @@ jobs:
           tags: |
             ghcr.io/luyi-bupt/opencart-project/automation-tool:latest
             ghcr.io/luyi-bupt/opencart-project/automation-tool:${{ github.sha }}
+
+  deploy:
+    name: Deploy to Server
+    # 关键：这行表示，必须在两个build任务都成功完成后，才能开始此任务
+    needs: [build-and-push-app, build-and-push-automation] 
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and Deploy
+        # 我们使用一个非常流行的社区Action来简化SSH操作
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # 以下是要在您的Ubuntu服务器上执行的命令
+            cd ~/Desktop/opencart-project
+            docker compose pull
+            docker compose up -d --remove-orphans
+            echo "Deployment successful!"
